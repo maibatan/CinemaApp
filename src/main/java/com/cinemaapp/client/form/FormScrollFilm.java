@@ -49,7 +49,7 @@ public class FormScrollFilm extends javax.swing.JPanel {
 
         scroll.setBorder(null);
         scroll.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.setPreferredSize(new java.awt.Dimension(1000, 600));
+        scroll.setPreferredSize(new java.awt.Dimension(1000, 2000));
         scroll.setViewportView(panelItem);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);

@@ -31,7 +31,6 @@ public class ServerService implements Runnable{
     private boolean running;
     private Security security = null;
     private ArrayList<ICinema> cinemas = new ArrayList<>();
-    private HashMap<String, MovieModel> movies = new HashMap<>();
     
     public ServerService(Socket socket){
         try {
@@ -41,6 +40,8 @@ public class ServerService implements Runnable{
             this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
             configSercurity();
             cinemas.add(new BHDCinema());
+            cinemas.add(new LotteCinema());
+            cinemas.add(new GalaxyCinema());
         } catch (IOException e) { 
             Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e); 
         }     
@@ -128,26 +129,19 @@ public class ServerService implements Runnable{
         return null;
     }
     private void sendPlayingMovies(){
-        movies.clear();
+        
         for (int i =0; i < cinemas.size(); i++) {
             ICinema cinema = cinemas.get(i);
             ArrayList<String> ids = cinema.getPlayingMoviesId();
             for (String id : ids) {
                 String name = cinema.getName(id);
                 String imgUrl = cinema.getImageUrl(id);
-                if(!movies.containsKey(name))
-                {
-                    MovieModel movieModel = new MovieModel(name);
-                    movies.put(name,movieModel);
-                }
-                MovieModel movieModel = movies.get(name);
+                MovieModel movieModel = new MovieModel(name);
                 movieModel.addId(cinema.getClass().getName(), id);
                 movieModel.addImageUrl(cinema.getClass().getName(), imgUrl);
-                if(i == cinemas.size() -1){
-                    Gson gson = new Gson();
-                    String json = gson.toJson(movieModel);
-                    send(json);
-                }
+                Gson gson = new Gson();
+                String json = gson.toJson(movieModel);
+                send(json);
             }
         }
     }
@@ -155,6 +149,7 @@ public class ServerService implements Runnable{
         MovieDetailModel detailModel = new MovieDetailModel();
         for (ICinema cinema : cinemas) {
             String id = movie.getId(cinema.getClass().getName());
+            if(id.equals("")) continue;
             String description = cinema.getDescription(id);
             String direction = cinema.getDirection(id);
             String actors = cinema.getActors(id);

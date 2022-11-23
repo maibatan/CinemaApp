@@ -1,8 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.cinemaapp.utils;
+
+import com.cinemaapp.server.main.ServerApp;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -18,17 +16,13 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- *
- * @author New
- */
 public class Security {
     
     private SecretKeySpec skeySpec = null;
     private IvParameterSpec iv = null;
     public Security(String key){   
         skeySpec = new SecretKeySpec(key.getBytes(), "TripleDES");
-        iv = new IvParameterSpec("Security".getBytes());
+        iv = new IvParameterSpec(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
     }
     public String Encrypt(String data) {
         try {
@@ -38,7 +32,7 @@ public class Security {
             String strEncrypt = Base64.getEncoder().encodeToString(byteEncrypted);
             return strEncrypt;
         } catch (InvalidKeyException | InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-            System.err.println(e);
+            Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
     }
@@ -49,7 +43,7 @@ public class Security {
             byte[] byteDecrypted = cipher.doFinal(Base64.getDecoder().decode(data));
             return new String(byteDecrypted);
         } catch (InvalidKeyException | InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-             System.err.println(e);
+             Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
     }

@@ -48,14 +48,19 @@ public class Client {
             X509EncodedKeySpec spec = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKey));
             KeyFactory factory = KeyFactory.getInstance("RSA");
             PublicKey PK = factory.generatePublic(spec);
-            byte[] array = new byte[24]; 
-            new Random().nextBytes(array);
-            String generatedKey = new String(array,0,array.length); 
-            String msg = RSAUtil.Encrypt(generatedKey, PK);
+            String charlList = "12345567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            Random randomGenerator = new Random();
+            StringBuilder generatedKey = new StringBuilder();
+            for(int i=0; i<24; i++){
+                int randomInt = Math.abs(randomGenerator.nextInt()%charlList.length());
+                char ch = charlList.charAt(randomInt);
+                generatedKey.append(ch);
+            }
+            String msg = RSAUtil.Encrypt(generatedKey.toString(), PK);
             out.write(msg);
             out.newLine();
             out.flush();
-            security = new Security(generatedKey);
+            security = new Security(generatedKey.toString());
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) { 
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, e);
         } 

@@ -9,7 +9,7 @@ import org.jsoup.Jsoup;
 
 public class ServerApp {
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         uploadIPAddress();
         Server server = new Server(5000);
         server.run();
