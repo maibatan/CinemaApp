@@ -41,7 +41,6 @@ public class ServerService implements Runnable{
             configSercurity();
             cinemas.add(new BHDCinema());
             cinemas.add(new LotteCinema());
-            cinemas.add(new GalaxyCinema());
         } catch (IOException e) { 
             Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e); 
         }     
