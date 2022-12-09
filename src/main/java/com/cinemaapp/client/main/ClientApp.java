@@ -34,6 +34,4 @@ public class ClientApp {
             Logger.getLogger(ClientApp.class.getName()).log(Level.SEVERE, null, e);
         }
     }
-    
-    
 }

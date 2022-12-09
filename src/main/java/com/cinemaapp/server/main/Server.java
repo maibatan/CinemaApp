@@ -1,9 +1,11 @@
 package com.cinemaapp.server.main;
 
+import com.cinemaapp.server.interfaces.ICinema;
 import com.cinemaapp.utils.RSAKeyPairGenerator;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,6 +14,7 @@ import java.util.logging.Logger;
 
 public class Server {
     public static RSAKeyPairGenerator keyPair;
+    public static ArrayList<ICinema> cinemas;
     private ServerSocket server = null;
     private ExecutorService executorService = null;
     private Vector<ServerService> clientList = null;
@@ -26,6 +29,9 @@ public class Server {
             running = true;
             clientList = new Vector<>();
             keyPair = new RSAKeyPairGenerator();
+            cinemas = new ArrayList<>();
+            cinemas.add(new BHDCinema());
+            cinemas.add(new LotteCinema());
         } catch (IOException e) { 
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, e); 
         }           

@@ -16,11 +16,11 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class Security {
+public class TripleDES {
     
     private SecretKeySpec skeySpec = null;
     private IvParameterSpec iv = null;
-    public Security(String key){   
+    public TripleDES(String key){   
         skeySpec = new SecretKeySpec(key.getBytes(), "TripleDES");
         iv = new IvParameterSpec(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 });
     }
@@ -32,7 +32,7 @@ public class Security {
             String strEncrypt = Base64.getEncoder().encodeToString(byteEncrypted);
             return strEncrypt;
         } catch (InvalidKeyException | InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-            Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, e);
+            Logger.getLogger(TripleDES.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
     }
@@ -43,7 +43,7 @@ public class Security {
             byte[] byteDecrypted = cipher.doFinal(Base64.getDecoder().decode(data));
             return new String(byteDecrypted);
         } catch (InvalidKeyException | InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-             Logger.getLogger(Security.class.getName()).log(Level.SEVERE, null, e);
+             Logger.getLogger(TripleDES.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
     }

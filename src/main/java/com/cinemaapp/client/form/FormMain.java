@@ -1,6 +1,7 @@
 package com.cinemaapp.client.form;
 
 import com.cinemaapp.client.main.ClientApp;
+import com.cinemaapp.model.Message;
 import com.cinemaapp.model.MovieModel;
 import com.google.gson.Gson;
 import java.awt.BorderLayout;
@@ -8,6 +9,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import javax.swing.JFrame;
+import org.json.JSONObject;
 
 public class FormMain extends javax.swing.JFrame {
 
@@ -22,7 +24,7 @@ public class FormMain extends javax.swing.JFrame {
     private void init() {
         formFilm = new FormScrollFilm();
         winButton.addCloseEvent((ActionEvent ae) -> {
-            ClientApp.client.send("close");
+            ClientApp.client.send(new Message("close"));
             ClientApp.client.close();
             System.exit(0);
         });
@@ -49,22 +51,16 @@ public class FormMain extends javax.swing.JFrame {
     public void loadMovies(){ 
         Thread thread;
         thread = new Thread(() -> {
-            System.out.println("loading....");
-            Gson gson = new Gson();  
-            ClientApp.client.send("playingMovies");
+            System.out.println("Loading...."); 
+            ClientApp.client.send(new Message("playing movies"));
             while (true) {                
-                String start = ClientApp.client.receive();
-                if(start.equals("start")){
-                    while (true) {
-                        String msg = ClientApp.client.receive();
-                        if(msg.equals("end")){
-                            break;
-                        } 
-                        MovieModel movieModel = gson.fromJson(msg, MovieModel.class);
-                        formFilm.addItem(movieModel);
-                    }
-                    break;
-                }
+                String msg = ClientApp.client.receive();
+                JSONObject jsonobject = new JSONObject(msg);
+                if(!jsonobject.getString("msg").equals("playing movies")) continue;
+                if(jsonobject.getBoolean("empty")) break;
+                Gson gson = new Gson(); 
+                MovieModel movieModel = gson.fromJson(jsonobject.getJSONObject("data").toString(), MovieModel.class);
+                formFilm.addItem(movieModel);
             }
             System.out.println("Done....");
         });

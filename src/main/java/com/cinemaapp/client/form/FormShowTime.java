@@ -2,12 +2,14 @@ package com.cinemaapp.client.form;
 
 import com.cinemaapp.client.main.ClientApp;
 import com.cinemaapp.model.CinemaShowTimeModel;
+import com.cinemaapp.model.Message;
 import com.cinemaapp.model.MovieModel;
 import com.google.gson.Gson;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import javax.swing.JFrame;
+import org.json.JSONObject;
 
 public class FormShowTime extends javax.swing.JFrame {
 
@@ -43,24 +45,16 @@ public class FormShowTime extends javax.swing.JFrame {
     public void loadShowTime(MovieModel movie){ 
         Thread thread;
         thread = new Thread(() -> {
-            System.out.println("loading....");
-            ClientApp.client.send("cinemaShowTime");
-            Gson gson = new Gson();
-            String json = gson.toJson(movie);
-            ClientApp.client.send(json);
+            System.out.println("Loading....");
+            ClientApp.client.send(new Message("cinema show time",movie));
             while (true) {                
-                String start = ClientApp.client.receive();
-                if(start.equals("startGetTime")){
-                    while (true) {
-                        String msg = ClientApp.client.receive();
-                        if(msg.equals("endGetTime")){
-                            break;
-                        }
-                        CinemaShowTimeModel cinemaShowTime = gson.fromJson(msg, CinemaShowTimeModel.class);
-                        list.addItem(cinemaShowTime);
-                    }
-                    break;
-                }
+                String msg = ClientApp.client.receive();
+                JSONObject jsonobject = new JSONObject(msg);
+                if(!jsonobject.getString("msg").equals("cinema show time")) continue;
+                if(jsonobject.getBoolean("empty")) break;
+                Gson gson = new Gson();
+                CinemaShowTimeModel cinemaShowTime = gson.fromJson(jsonobject.getJSONObject("data").toString(), CinemaShowTimeModel.class);
+                list.addItem(cinemaShowTime);
             }
             System.out.println("Done....");
         });

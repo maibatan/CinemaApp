@@ -4,8 +4,11 @@
  */
 package com.cinemaapp.client.main;
 
+import com.cinemaapp.model.Message;
 import com.cinemaapp.utils.RSAUtil;
-import com.cinemaapp.utils.Security;
+import com.cinemaapp.utils.TripleDES;
+import com.cinemaapp.utils.TripleDESKeyGenerator;
+import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -18,19 +21,14 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author New
- */
 public class Client {
     private Socket socket = null;
     private BufferedReader in = null;
     private BufferedWriter out = null;
-    private Security security = null;
+    private TripleDES security = null;
     
     public Client(String host, int port)
     {
@@ -48,26 +46,20 @@ public class Client {
             X509EncodedKeySpec spec = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKey));
             KeyFactory factory = KeyFactory.getInstance("RSA");
             PublicKey PK = factory.generatePublic(spec);
-            String charlList = "12345567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-            Random randomGenerator = new Random();
-            StringBuilder generatedKey = new StringBuilder();
-            for(int i=0; i<24; i++){
-                int randomInt = Math.abs(randomGenerator.nextInt()%charlList.length());
-                char ch = charlList.charAt(randomInt);
-                generatedKey.append(ch);
-            }
-            String msg = RSAUtil.Encrypt(generatedKey.toString(), PK);
+            TripleDESKeyGenerator keyGenerator = new TripleDESKeyGenerator();
+            String msg = RSAUtil.Encrypt(keyGenerator.getKey(), PK);
             out.write(msg);
             out.newLine();
             out.flush();
-            security = new Security(generatedKey.toString());
+            security = new TripleDES(keyGenerator.getKey());
         } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) { 
             Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, e);
         } 
     }
-    public void send(String data) {
+    public void send(Message data) {
         try {
-            String msg = security.Encrypt(data);
+            Gson gson = new Gson();
+            String msg = security.Encrypt(gson.toJson(data));
             out.write(msg);
             out.newLine();
             out.flush();
@@ -87,7 +79,7 @@ public class Client {
     }
     public void close() {     
         try {
-            send("close");
+            send(new Message("close"));
             in.close();
             out.close();
             socket.close();

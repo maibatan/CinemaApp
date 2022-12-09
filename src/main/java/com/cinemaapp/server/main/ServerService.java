@@ -1,11 +1,12 @@
 package com.cinemaapp.server.main;
 
 import com.cinemaapp.model.CinemaShowTimeModel;
+import com.cinemaapp.model.Message;
 import com.cinemaapp.model.MovieDetailModel;
 import com.cinemaapp.model.MovieModel;
 import com.cinemaapp.server.interfaces.ICinema;
 import com.cinemaapp.utils.RSAUtil;
-import com.cinemaapp.utils.Security;
+import com.cinemaapp.utils.TripleDES;
 import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -15,9 +16,9 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONObject;
 
 /**
  *
@@ -29,8 +30,7 @@ public class ServerService implements Runnable{
     private BufferedReader in = null;
     private BufferedWriter out = null;
     private boolean running;
-    private Security security = null;
-    private ArrayList<ICinema> cinemas = new ArrayList<>();
+    private TripleDES security = null;
     
     public ServerService(Socket socket){
         try {
@@ -39,51 +39,49 @@ public class ServerService implements Runnable{
             this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
             this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
             configSercurity();
-            cinemas.add(new BHDCinema());
-            cinemas.add(new LotteCinema());
         } catch (IOException e) { 
             Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e); 
         }     
     }
-
-    public boolean isRunning() {
-        return running;
+    private void configSercurity(){
+        try {  
+            String publickey = Base64.getEncoder().encodeToString(Server.keyPair.getPublicKey().getEncoded());
+            out.write(publickey);
+            out.newLine();
+            out.flush();
+            String key = RSAUtil.Decrypt(in.readLine(),Server.keyPair.getPrivateKey());
+            security = new TripleDES(key);
+        } catch (IOException e) {
+           Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e);
+        }
     }
-    
+   
     @Override
     public void run() {
-        try {
-            while (running) {     
-                String data = receive();
-                if(data.equals("close")){
-                    close();
-                    break;
+        while (running) {     
+                String msg = receive();
+                JSONObject jsonobject = new JSONObject(msg);
+                if(jsonobject.getBoolean("empty")){                   
+                    if(jsonobject.getString("msg").equals("close")){ 
+                        close();
+                        break;
+                    }
+                    if(jsonobject.getString("msg").equals("playing movies")){
+                       sendPlayingMovies();
+                    }
+                    continue;
                 }
-                if(data.equals("playingMovies")){
-                   send("start");
-                   sendPlayingMovies();
-                   send("end");
-                }
-                if(data.equals("detailMovie")){
-                   String json = receive();
-                   Gson gson = new Gson();
-                   MovieModel movie = gson.fromJson(json, MovieModel.class);
-                   send("startGetDetail");
+                Gson gson = new Gson();
+                String jsonData = jsonobject.getJSONObject("data").toString();
+                if(jsonobject.getString("msg").equals("detail movie")){
+                   MovieModel movie = gson.fromJson(jsonData, MovieModel.class);
                    sendDetail(movie);
-                   send("endGetDetail");
                 }    
-                if(data.equals("cinemaShowTime")){
-                   String json = receive();
-                   Gson gson = new Gson();
-                   MovieModel movie = gson.fromJson(json, MovieModel.class);
-                   send("startGetTime");
+                if(jsonobject.getString("msg").equals("cinema show time")){
+                   MovieModel movie = gson.fromJson(jsonData, MovieModel.class);
                    sendShowTime(movie);
-                   send("endGetTime");
                 }    
             }
-        } catch (Exception e) { 
-            Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e); 
-        }
     }
     public void close(){
         try {
@@ -95,21 +93,11 @@ public class ServerService implements Runnable{
             
         } catch (IOException e) { System.err.println(e); }
     }
-    private void configSercurity(){
-        try {  
-            String publickey = Base64.getEncoder().encodeToString(Server.keyPair.getPublicKey().getEncoded());
-            out.write(publickey);
-            out.newLine();
-            out.flush();
-            String key = RSAUtil.Decrypt(in.readLine(),Server.keyPair.getPrivateKey());
-            security = new Security(key);
-        } catch (IOException e) {
-           Logger.getLogger(ServerService.class.getName()).log(Level.SEVERE, null, e);
-        }
-    }
-    private void send(String data){
+
+    private void send(Message data){
         try {
-            String msg = security.Encrypt(data);
+            Gson gson = new Gson();
+            String msg = security.Encrypt(gson.toJson(data));
             out.write(msg);
             out.newLine();
             out.flush();
@@ -127,10 +115,9 @@ public class ServerService implements Runnable{
         }
         return null;
     }
-    private void sendPlayingMovies(){
-        
-        for (int i =0; i < cinemas.size(); i++) {
-            ICinema cinema = cinemas.get(i);
+    private void sendPlayingMovies(){        
+        for (int i =0; i < Server.cinemas.size(); i++) {
+            ICinema cinema = Server.cinemas.get(i);
             ArrayList<String> ids = cinema.getPlayingMoviesId();
             for (String id : ids) {
                 String name = cinema.getName(id);
@@ -138,15 +125,14 @@ public class ServerService implements Runnable{
                 MovieModel movieModel = new MovieModel(name);
                 movieModel.addId(cinema.getClass().getName(), id);
                 movieModel.addImageUrl(cinema.getClass().getName(), imgUrl);
-                Gson gson = new Gson();
-                String json = gson.toJson(movieModel);
-                send(json);
+                send(new Message("playing movies",movieModel));
             }
         }
+        send(new Message("playing movies"));
     }
     private void sendDetail(MovieModel movie){
         MovieDetailModel detailModel = new MovieDetailModel();
-        for (ICinema cinema : cinemas) {
+        for (ICinema cinema : Server.cinemas) {
             String id = movie.getId(cinema.getClass().getName());
             if(id.equals("")) continue;
             String description = cinema.getDescription(id);
@@ -170,19 +156,22 @@ public class ServerService implements Runnable{
                 detailModel.setDuration(duration);
             }
         }
-        Gson gson = new Gson();
-        String json = gson.toJson(detailModel);
-        send(json);
+        send(new Message("detail movie",detailModel));
     }
     private void sendShowTime(MovieModel movie) {
-        for (ICinema cinema : cinemas) {
+        for (ICinema cinema : Server.cinemas) {
             String id = movie.getId(cinema.getClass().getName());
+            if(id.equals("")) break;
             ArrayList<CinemaShowTimeModel> cinemaShowTimes = cinema.getShowTime(id);
             for (CinemaShowTimeModel cinemaShowTime : cinemaShowTimes) {
-                Gson gson = new Gson();
-                String json = gson.toJson(cinemaShowTime);
-                send(json);
+                send(new Message("cinema show time",cinemaShowTime));
             }
-        }    
+        }
+        send(new Message("cinema show time"));
     }
+    
+    public boolean isRunning() {
+        return running;
+    }
+    
 }

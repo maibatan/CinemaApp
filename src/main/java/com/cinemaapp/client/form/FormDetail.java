@@ -2,6 +2,7 @@ package com.cinemaapp.client.form;
 
 import com.cinemaapp.client.main.ClientApp;
 import com.cinemaapp.client.swing.ScrollBar;
+import com.cinemaapp.model.Message;
 import com.cinemaapp.model.MovieDetailModel;
 import com.cinemaapp.model.MovieModel;
 import com.cinemaapp.utils.ImageUtil;
@@ -11,13 +12,13 @@ import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Icon;
 import javax.swing.JFrame;
+import org.json.JSONObject;
 
 public class FormDetail extends javax.swing.JFrame {
 
@@ -78,24 +79,16 @@ public class FormDetail extends javax.swing.JFrame {
         thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                System.out.println("loading....");
-                ClientApp.client.send("detailMovie");
-                Gson gson = new Gson();
-                String json = gson.toJson(movie);
-                ClientApp.client.send(json);
+                System.out.println("Loading....");
+                ClientApp.client.send(new Message("detail movie",movie));
                 while (true) {
-                    String start = ClientApp.client.receive();
-                    if(start.equals("startGetDetail")){
-                        while (true) {
-                            String msg = ClientApp.client.receive();
-                            if(msg.equals("endGetDetail")){
-                                break;
-                            }
-                            MovieDetailModel model = gson.fromJson(msg, MovieDetailModel.class);
-                            setData(model);
-                        }
-                        break;
-                    }
+                    String msg = ClientApp.client.receive();
+                    JSONObject jsonobject = new JSONObject(msg);
+                    if(!jsonobject.getString("msg").equals("detail movie")) continue;
+                    Gson gson = new Gson();
+                    MovieDetailModel model = gson.fromJson(jsonobject.getJSONObject("data").toString(), MovieDetailModel.class);
+                    setData(model);
+                    break;
                 }
                 System.out.println("Done....");
             }
@@ -241,6 +234,7 @@ public class FormDetail extends javax.swing.JFrame {
         txtDescription.setLineWrap(true);
         txtDescription.setRows(5);
         txtDescription.setText("Loading...\n");
+        txtDescription.setWrapStyleWord(true);
         txtDescription.setBorder(null);
         txtDescription.setCaretColor(new java.awt.Color(255, 255, 255));
         txtDescription.setDisabledTextColor(new java.awt.Color(255, 255, 255));
